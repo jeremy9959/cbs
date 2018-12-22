@@ -12,11 +12,13 @@ def cbs_stat(x, start, end):
         l2 = N
         s1 = 0
         s2 = np.sum(x[start:end]) 
-        for seg_end in range(seg_start, end-1):
+        for seg_end in range(seg_start, end):
             s1 = s1+x[seg_end]
             s2 = s2-x[seg_end]
             l1 = l1 + 1
             l2 = l2 - 1
+            if l2 == 0:
+                continue
             t = np.abs((s1/l1 - s2/l2)/np.sqrt(1/l1 + 1/l2))
             if t > max_t:
                 max_t, max_start, max_end  = t, seg_start, seg_end+1
@@ -56,7 +58,7 @@ if __name__ == '__main__':
     N = 20
     means = np.random.randint(-5, 5, N)
     runs = np.random.randint(8, 15, N)
-    sample = np.concatenate([([x]*y)+np.random.normal(0,.2,size=y) for (x,y) in zip(means,runs)])
+    sample = np.concatenate([([x]*y)+np.random.normal(0,.5,size=y) for (x,y) in zip(means,runs)])
     base_line = np.concatenate([[x]*y for (x,y) in zip(means,runs)])
     L=[]
     segment(sample, 0, len(sample), L)
