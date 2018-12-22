@@ -11,7 +11,7 @@ def cbs_stat(x, start, end):
         for seg_end in range(seg_start+1,end+1):
             l1 = seg_end - seg_start
             l2 = seg_start + N - seg_end
-            if l1*l2==0:
+            if l1*l2 == 0:
                 continue
             s1 = np.sum(x[seg_start:seg_end])
             s2 = np.sum(x[seg_end:N]) + np.sum(x[:seg_start])
