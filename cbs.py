@@ -8,18 +8,18 @@ def cbs_stat(x, start, end):
     max_end = end
     max_t = 0
     for seg_start in range(start,end):
-        for seg_end in range(seg_start+1,end+1):
-            l1 = seg_end - seg_start
-            l2 = seg_start + N - seg_end
-            if l1*l2 == 0:
-                continue
-            s1 = np.sum(x[seg_start:seg_end])
-            s2 = np.sum(x[seg_end:N]) + np.sum(x[:seg_start])
-            t = (s1/l1 - s2/l2)/np.sqrt(1/l1 + 1/l2)
+        l1 = 0
+        l2 = N
+        s1 = 0
+        s2 = np.sum(x[start:end]) 
+        for seg_end in range(seg_start, end-1):
+            s1 = s1+x[seg_end]
+            s2 = s2-x[seg_end]
+            l1 = l1 + 1
+            l2 = l2 - 1
+            t = np.abs((s1/l1 - s2/l2)/np.sqrt(1/l1 + 1/l2))
             if t > max_t:
-                max_t = t
-                max_start = seg_start
-                max_end = seg_end
+                max_t, max_start, max_end  = t, seg_start, seg_end+1
     return max_t, max_start, max_end
 
 
