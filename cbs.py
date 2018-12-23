@@ -3,26 +3,19 @@ import seaborn as sns
 
 
 def cbs_stat(x, start, end):
-    N = end - start
-    max_start = start
-    max_end = end
-    max_t = 0
-    for seg_start in range(start,end):
-        l1 = 0
-        l2 = N
-        s1 = 0
-        s2 = np.sum(x[start:end]) 
-        for seg_end in range(seg_start, end):
-            s1 = s1+x[seg_end]
-            s2 = s2-x[seg_end]
-            l1 = l1 + 1
-            l2 = l2 - 1
-            if l2 == 0:
-                continue
-            t = np.abs((s1/l1 - s2/l2)/np.sqrt(1/l1 + 1/l2))
-            if t > max_t:
-                max_t, max_start, max_end  = t, seg_start, seg_end+1
-    return max_t, max_start, max_end
+    x0 = x[start:end] - np.mean(x[start:end])
+    n = end - start
+    y = np.cumsum(x0)
+
+    e0 = np.argmin(y)
+    e1 = np.argmax(y)
+
+    i0 = min(e0,e1)
+    i1 = max(e0,e1)
+    s0 = y[i0]
+    s1 = y[i1]
+    return (s1-s0)**2*n/(i1-i0)/(n-i1+i0), i0+start, i1+start
+
 
 
 def cbs(x, shuffles=100):
@@ -45,11 +38,11 @@ def segment(x, start, end, L):
     if not threshold:
         L.append((start,end))
     else:
-        if s>0:
+        if s>1:
             segment(x,start, start+s,L)
         if e-s>1:
             segment(x,start+s, start+e,L)
-        if start+e < end:
+        if start+e < end-1:
             segment(x,start+e,end,L)
         return L
     
@@ -59,7 +52,8 @@ if __name__ == '__main__':
     means = np.random.randint(-5, 5, N)
     runs = np.random.randint(8, 15, N)
     sample = np.concatenate([([x]*y)+np.random.normal(0,.5,size=y) for (x,y) in zip(means,runs)])
-    base_line = np.concatenate([[x]*y for (x,y) in zip(means,runs)])
+    sample = sample 
+
     L=[]
     segment(sample, 0, len(sample), L)
     j=sns.scatterplot(list(range(len(sample))),sample)
