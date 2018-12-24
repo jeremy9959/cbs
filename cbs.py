@@ -6,16 +6,12 @@ def cbs_stat(x, start, end):
     x0 = x[start:end] - np.mean(x[start:end])
     n = end - start
     y = np.cumsum(x0)
-
     e0 = np.argmin(y)
     e1 = np.argmax(y)
-
     i0 = min(e0,e1)
     i1 = max(e0,e1)
-
     s0 = y[i0]
     s1 = y[i1]
-
     return (s1-s0)**2*n/(i1-i0)/(n-i1+i0), i0+start, i1+start+1
 
 
@@ -26,26 +22,12 @@ def t_single(x, start, end, i):
     return t
 
 
-def viable(x, start, end, i, shuffles=1000):
-    n = end - start
-    if (i-start <=1) | ((end-i) <=1):
-        return False
-    t0 = t_single(x, start, end, i)
-    alpha = shuffles*.05
-    threshold_count = 0
-    for k in range(shuffles):
-        t1 = t_single(np.random.permutation(x[start:end]), 0, n, i-start)
-        if t1 > t0:
-            threshold_count += 1
-        if threshold_count > alpha:
-            return False
-    return True
-
-
 def cbs(x, shuffles=1000):
     start=0
     end=len(x)
     max_t, max_start, max_end = cbs_stat(x ,start,end)
+    if max_end-max_start == len(x):
+        return False, max_t, max_start, max_end
     thresh_count=0
     alpha = shuffles*.05
     for i in range(shuffles):
@@ -57,28 +39,21 @@ def cbs(x, shuffles=1000):
     return True, max_t, max_start, max_end
 
 
-def segment(x, start, end, L):
+def segment(x, start, end, L=[]):
     threshold, t, s, e = cbs(x[start:end])
     print(start, end, threshold, t, start+s, start+e)
-    if not threshold:
+    if not threshold  :
         L.append((start,end))
     else:
-        vs = viable(x, start, end, start+s)
-        ve = viable(x, start, end, start+e)
-        print('\t', start, end, start+s, vs)
-        print('\t', start, end, start+e, vs)
-        if vs & ve:
+        if s>5:
+            print('\t1. Trying ',start, start+s, ' in ' ,start, end)
             segment(x, start, start+s, L)
+        if e-s>5:
+            print('\t2. Trying ',  start+s, start+e, ' in ', start, end)
             segment(x, start+s, start+e, L)
+        if  e<end-start-5:
+            print('\t3. Trying ', start+e, end, ' in ', start, end)
             segment(x, start+e, end, L)
-        else:
-            if vs & ~ve:
-                segment(x, start, start+s, L)
-                L.append((start+s, end))
-            else:
-                if ve & ~vs:
-                    segment(x, start+e, end, L)
-                    L.append((start, start+s))
     return L
 
     
@@ -90,8 +65,7 @@ if __name__ == '__main__':
     sample = np.concatenate([([x]*y)+np.random.normal(0,.5,size=y) for (x,y) in zip(means,runs)])
     sample = sample 
 
-    L=[]
-    segment(sample, 0, len(sample), L)
+    L = segment(sample, 0, len(sample))
     j=sns.scatterplot(list(range(len(sample))),sample)
     for x in L:
         j.axvline(x[0])
