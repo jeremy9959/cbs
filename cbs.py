@@ -1,17 +1,17 @@
 import numpy as np
 import seaborn as sns
+import logging
 
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 def cbs_stat(x, start, end):
     x0 = x[start:end] - np.mean(x[start:end])
     n = end - start
     y = np.cumsum(x0)
-    e0 = np.argmin(y)
-    e1 = np.argmax(y)
-    i0 = min(e0,e1)
-    i1 = max(e0,e1)
-    s0 = y[i0]
-    s1 = y[i1]
+    e0, e1 = np.argmin(y), np.argmax(y)
+    i0, i1 = min(e0,e1), max(e0, e1)
+    s0, s1 = y[i0], y[i1]
     return (s1-s0)**2*n/(i1-i0)/(n-i1+i0), i0+start, i1+start+1
 
 
@@ -41,24 +41,22 @@ def cbs(x, shuffles=1000):
 
 def segment(x, start, end, L=[]):
     threshold, t, s, e = cbs(x[start:end])
-    print(start, end, threshold, t, start+s, start+e)
+    log.info('Proposed partition of {} to {} from {} to {} with t value {} is {}'.format(start, end, start+s, start+e,t,threshold))
     if not threshold  :
         L.append((start,end))
     else:
         if s>5:
-            print('\t1. Trying ',start, start+s, ' in ' ,start, end)
             segment(x, start, start+s, L)
         if e-s>5:
-            print('\t2. Trying ',  start+s, start+e, ' in ', start, end)
             segment(x, start+s, start+e, L)
         if  e<end-start-5:
-            print('\t3. Trying ', start+e, end, ' in ', start, end)
             segment(x, start+e, end, L)
     return L
 
     
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     N = 100
     means = np.random.randint(-5, 5, N)
     runs = np.random.randint(10, 50, N)
