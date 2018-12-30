@@ -96,4 +96,4 @@ if __name__ == '__main__':
         ax.axvline(x[0],color='gray',alpha=0.5)
     ax.axvline(L[-1][1],color='gray', alpha=0.5)
     ax.set_title('Segmentation of random normally distributed time series\n Algorithm is (simplified) circular binary segmentation')
-
+    fig.savefig('plot.png')
