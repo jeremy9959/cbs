@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import logging
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.WARN)
+log.setLevel(logging.INFO)
 
 
 def cbs_stat(x):
@@ -17,7 +17,7 @@ def cbs_stat(x):
     e0, e1 = np.argmin(y), np.argmax(y)
     i0, i1 = min(e0,e1), max(e0, e1)
     s0, s1 = y[i0], y[i1]
-    return (s1-s0)**2*n/(i1-i0)/(n-i1+i0), i0, i1
+    return (s1-s0)**2*n/(i1-i0+1)/(n+1-i1+i0), i0, i1+1
 
 
 def cbs(x, shuffles=1000, p=.05):
@@ -28,6 +28,10 @@ def cbs(x, shuffles=1000, p=.05):
     max_t, max_start, max_end = cbs_stat(x)
     if max_end-max_start == len(x):
         return False, max_t, max_start, max_end
+    if max_start  < 5:
+        max_start = 0
+    if len(x)-max_end < 5:
+        max_end = len(x)
     thresh_count=0
     alpha = shuffles*p
     xt = x.copy()
@@ -46,14 +50,14 @@ def rsegment(x, start, end , L=[], shuffles=1000, p=.05):
     '''
     threshold, t, s, e = cbs(x[start:end], shuffles=shuffles, p=p)
     log.info('Proposed partition of {} to {} from {} to {} with t value {} is {}'.format(start, end, start+s, start+e,t,threshold))
-    if not threshold  :
+    if (not threshold) | (e-s <5) | (e-s == end-start):
         L.append((start,end))
     else:
-        if s>5:
+        if s>0:
             rsegment(x, start, start+s, L)
-        if e-s>5:
+        if e-s>0:
             rsegment(x, start+s, start+e, L)
-        if  e<end-start-5:
+        if start+e<end:
             rsegment(x, start+e, end, L)
     return L
 
