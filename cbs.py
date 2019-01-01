@@ -3,8 +3,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import logging
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.WARN)
+log = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
+
 
 
 def cbs_stat(x):
@@ -15,25 +16,36 @@ def cbs_stat(x):
     n = len(x0)
     y = np.cumsum(x0)
     e0, e1 = np.argmin(y), np.argmax(y)
-    i0, i1 = min(e0,e1), max(e0, e1)
+    i0, i1 = min(e0, e1), max(e0, e1)
     s0, s1 = y[i0], y[i1]
-    return (s1-s0)**2*n/(i1-i0)/(n-i1+i0), i0, i1
+    return (s1-s0)**2*n/(i1-i0+1)/(n+1-i1+i0), i0, i1+1
 
+
+def tstat(x, i):
+    '''Return the segmentation statistic t testing if i is a (one-sided)  breakpoint in x'''
+    n = len(x)
+    s0 = np.mean(x[:i])
+    s1 = np.mean(x[i:])
+    return (n-i)*i/n*(s0-s1)**2
 
 def cbs(x, shuffles=1000, p=.05):
     '''Given x, find the interval x[i0:i1] with maximal segmentation statistic t. Test that statistic against
     given (shuffles) number of random permutations with significance p.  Return True/False, t, i0, i1; True if
     interval is significant, false otherwise.'''
-    
+
     max_t, max_start, max_end = cbs_stat(x)
     if max_end-max_start == len(x):
         return False, max_t, max_start, max_end
-    thresh_count=0
+    if max_start < 5:
+        max_start = 0
+    if len(x)-max_end < 5:
+        max_end = len(x)
+    thresh_count = 0
     alpha = shuffles*p
     xt = x.copy()
     for i in range(shuffles):
         np.random.shuffle(xt)
-        threshold, s0, e0  = cbs_stat(xt)
+        threshold, s0, e0 = cbs_stat(xt)
         if threshold >= max_t:
             thresh_count += 1
         if thresh_count > alpha:
@@ -41,19 +53,19 @@ def cbs(x, shuffles=1000, p=.05):
     return True, max_t, max_start, max_end
 
 
-def rsegment(x, start, end , L=[], shuffles=1000, p=.05):
+def rsegment(x, start, end, L=[], shuffles=1000, p=.05):
     '''Recursively segment the interval x[start:end] returning a list L of pairs (i,j) where each (i,j) is a significant segment.
     '''
     threshold, t, s, e = cbs(x[start:end], shuffles=shuffles, p=p)
-    log.info('Proposed partition of {} to {} from {} to {} with t value {} is {}'.format(start, end, start+s, start+e,t,threshold))
-    if not threshold  :
-        L.append((start,end))
+    log.info('Proposed partition of {} to {} from {} to {} with t value {} is {}'.format(start, end, start+s, start+e, t, threshold))
+    if (not threshold) | (e-s < 5) | (e-s == end-start):
+        L.append((start, end))
     else:
-        if s>5:
+        if s > 0:
             rsegment(x, start, start+s, L)
-        if e-s>5:
+        if e-s > 0:
             rsegment(x, start+s, start+e, L)
-        if  e<end-start-5:
+        if start+e < end:
             rsegment(x, start+e, end, L)
     return L
 
@@ -63,9 +75,38 @@ def segment(x, shuffles=1000, p=.05):
     '''
     start = 0
     end = len(x)
-    L=[]
+    L = []
     rsegment(x, start, end, L, shuffles=shuffles, p=p)
     return L
+
+
+def validate(x, L, shuffles=1000, p=.01):
+    S = [x[0] for x in L]+[len(x)]
+    SV = [0]
+    left = 0
+    for test, s in enumerate(S[1:-1]):
+        t = tstat(x[S[left]:S[test+2]], S[test+1]-S[left])
+        log.info('Testing validity of {} in interval from {} to {} yields statistic {}'.format(S[test+1], S[left], S[test+2], t))
+        threshold = 0
+        thresh_count = 0
+        site = S[test+1]-S[left]
+        xt = x[S[left]:S[test+2]].copy()
+        flag = True
+        for k in range(shuffles):
+            np.random.shuffle(xt)
+            threshold = tstat(xt, site)
+            if threshold > t:
+                thresh_count += 1
+            if thresh_count >= p*shuffles:
+                flag = False
+                log.info('Breakpoint {} rejected'.format(S[test+1]))
+                break
+        if flag:
+            log.info('Breakpoint {} accepted'.format(S[test+1]))
+            SV.append(S[test+1])
+            left += 1
+    SV.append(S[-1])
+    return SV
 
 
 def generate_normal_time_series(num, minl=50, maxl=1000):
@@ -86,14 +127,16 @@ def generate_normal_time_series(num, minl=50, maxl=1000):
 
 if __name__ == '__main__':
 
-    sample = generate_normal_time_series(10)
+    log.setLevel(logging.INFO)
+    sample = generate_normal_time_series(5)
     L = segment(sample)
+    S = validate(sample, L)
     fig, ax = plt.subplots(1)
-    fig.set_size_inches(12,4)
-    ax = sns.lineplot(list(range(len(sample))),sample, size=0.1, color='black',  legend=None, ax = ax)
-    
-    for x in L:
-        ax.axvline(x[0],color='gray',alpha=0.5)
-    ax.axvline(L[-1][1],color='gray', alpha=0.5)
+    fig.set_size_inches(12, 4)
+    ax = sns.lineplot(list(range(len(sample))), sample, size=0.1, color='black', legend=None, ax=ax)
+
+    for x in S:
+        ax.axvline(x, color='gray', alpha=0.5)
+    ax.axvline(S[-1], color='gray', alpha=0.5)
     ax.set_title('Segmentation of random normally distributed time series\n Algorithm is (simplified) circular binary segmentation')
     fig.savefig('plot.png')
