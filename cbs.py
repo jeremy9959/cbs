@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import logging
 
 log = logging.getLogger()
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
 
 
 
@@ -125,18 +125,23 @@ def generate_normal_time_series(num, minl=50, maxl=1000):
     return data
 
 
+def draw_segmented_data(data, S, title=None):
+    '''Draw a scatterplot of the data with vertical lines at segment boundaries and horizontal lines at means of 
+    the segments. S is a list of segment boundaries.'''
+    j=sns.scatterplot(range(len(data)),data,color='black',size=.001,legend=None)
+    for x in S:
+        j.axvline(x)
+    for i in range(1,len(S)):
+        j.hlines(np.mean(data[S[i-1]:S[i]]),S[i-1],S[i],color='green')
+    j.set_title(title)
+    j.get_figure().set_size_inches(16,4)
+    return j
+
 if __name__ == '__main__':
 
     log.setLevel(logging.INFO)
     sample = generate_normal_time_series(5)
     L = segment(sample)
     S = validate(sample, L)
-    fig, ax = plt.subplots(1)
-    fig.set_size_inches(12, 4)
-    ax = sns.lineplot(list(range(len(sample))), sample, size=0.1, color='black', legend=None, ax=ax)
-
-    for x in S:
-        ax.axvline(x, color='gray', alpha=0.5)
-    ax.axvline(S[-1], color='gray', alpha=0.5)
-    ax.set_title('Segmentation of random normally distributed time series\n Algorithm is (simplified) circular binary segmentation')
-    fig.savefig('plot.png')
+    ax = draw_segmented_data(data, S, title='Circular Binary Segmentation of Data')
+    ax.get_figure().savefig('plot.png')
