@@ -128,7 +128,7 @@ def generate_normal_time_series(num, minl=50, maxl=1000):
 def draw_segmented_data(data, S, title=None):
     '''Draw a scatterplot of the data with vertical lines at segment boundaries and horizontal lines at means of 
     the segments. S is a list of segment boundaries.'''
-    j=sns.scatterplot(range(len(data)),data,color='black',size=.001,legend=None)
+    j=sns.scatterplot(range(len(data)),data,color='black',size=.1,legend=None)
     for x in S:
         j.axvline(x)
     for i in range(1,len(S)):
@@ -143,5 +143,5 @@ if __name__ == '__main__':
     sample = generate_normal_time_series(5)
     L = segment(sample)
     S = validate(sample, L)
-    ax = draw_segmented_data(data, S, title='Circular Binary Segmentation of Data')
+    ax = draw_segmented_data(sample,  S, title='Circular Binary Segmentation of Data')
     ax.get_figure().savefig('plot.png')
