@@ -139,8 +139,8 @@ def draw_segmented_data(data, S, title=None):
 
 if __name__ == '__main__':
 
-    log.setLevel(logging.INFO)
     sample = generate_normal_time_series(5)
+    sns.set_style('darkgrid')
     L = segment(sample)
     S = validate(sample, L)
     ax = draw_segmented_data(data, S, title='Circular Binary Segmentation of Data')
