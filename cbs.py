@@ -127,16 +127,19 @@ def generate_normal_time_series(num, minl=50, maxl=1000):
 
 if __name__ == '__main__':
 
-    log.setLevel(logging.INFO)
     sample = generate_normal_time_series(5)
+    sns.set_style('darkgrid')
     L = segment(sample)
     S = validate(sample, L)
     fig, ax = plt.subplots(1)
     fig.set_size_inches(12, 4)
-    ax = sns.lineplot(list(range(len(sample))), sample, size=0.1, color='black', legend=None, ax=ax)
-
-    for x in S:
+    ax = sns.lineplot(list(range(len(sample))), sample, size=0.1, color='black', legend=None, ax=ax, alpha=0.5)
+    h0 = 0
+    for h,x in enumerate(S):
         ax.axvline(x, color='gray', alpha=0.5)
+        if h>0:
+            ax.hlines(np.mean(sample[S[h0]:x]),S[h0],x,color='red')
+            h0 = h
     ax.axvline(S[-1], color='gray', alpha=0.5)
     ax.set_title('Segmentation of random normally distributed time series\n Algorithm is (simplified) circular binary segmentation')
     fig.savefig('plot.png')
